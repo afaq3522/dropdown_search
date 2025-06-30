@@ -261,7 +261,6 @@ class DropdownSearchPopupState<T> extends State<DropdownSearchPopup<T>> {
                     ],
                   ),
                 ),
-                _multiSelectionValidation(),
               ],
             );
           }),
@@ -285,13 +284,19 @@ class DropdownSearchPopupState<T> extends State<DropdownSearchPopup<T>> {
   Widget _multiSelectionValidation() {
     if (!widget.isMultiSelectionMode) return SizedBox.shrink();
 
-    Widget defaultValidation = Padding(
-      padding: EdgeInsets.all(8),
-      child: Align(
-        alignment: Alignment.centerRight,
+    Widget defaultValidation = Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        height: 30,
         child: ElevatedButton(
+          style: const ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(Color(0xffA0BA9B)),
+          ),
           onPressed: onValidate,
-          child: Text("OK"),
+          child: const Text("Done", style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize:  15,
+            color: Colors.white,),),
         ),
       ),
     );
@@ -528,7 +533,14 @@ class DropdownSearchPopupState<T> extends State<DropdownSearchPopup<T>> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        widget.popupProps.title ?? const SizedBox.shrink(),
+        Padding(
+          padding: const EdgeInsets.only(top: 8.0, bottom: 5.0,right: 8,left: 8), child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: widget.popupProps.title ?? const SizedBox.shrink()),
+            _multiSelectionValidation(),
+          ],
+        ),),
         if (widget.popupProps.showSearchBox)
           Padding(
             padding: widget.popupProps.searchFieldProps.padding,
