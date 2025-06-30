@@ -534,7 +534,7 @@ class DropdownSearchPopupState<T> extends State<DropdownSearchPopup<T>> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Padding(
-          padding: const EdgeInsets.only(top: 8.0, bottom: 5.0,right: 8,left: 8), child: Row(
+          padding: const EdgeInsets.only(top: 12.0, bottom: 5.0,right: 8,left: 8), child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(child: widget.popupProps.title ?? const SizedBox.shrink()),
