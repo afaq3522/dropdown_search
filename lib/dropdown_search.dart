@@ -167,6 +167,8 @@ class DropdownSearch<T> extends StatefulWidget {
 
   final Mode mode;
 
+  final ButtonStyle? buttonStyle;
+
   DropdownSearch({
     super.key,
     T? selectedItem,
@@ -187,7 +189,7 @@ class DropdownSearch<T> extends StatefulWidget {
     //form properties
     this.onSaved,
     this.validator,
-    DropDownDecoratorProps? decoratorProps,
+    DropDownDecoratorProps? decoratorProps, this.buttonStyle,
   })  : assert(
           T == String || T == int || T == double || compareFn != null,
           '`compareFn` is required',
@@ -234,7 +236,7 @@ class DropdownSearch<T> extends StatefulWidget {
     //form properties
     FormFieldSetter<List<T>>? onSaved,
     FormFieldValidator<List<T>>? validator,
-    DropDownDecoratorProps? decoratorProps,
+    DropDownDecoratorProps? decoratorProps, this.buttonStyle,
   })  : assert(
           T == String || T == int || T == double || compareFn != null,
           '`compareFn` is required',
@@ -682,6 +684,7 @@ class DropdownSearchState<T> extends State<DropdownSearch<T>> {
       compareFn: widget.compareFn,
       isMultiSelectionMode: isMultiSelectionMode,
       defaultSelectedItems: List.from(getSelectedItems),
+      buttonStyle: widget.buttonStyle,
     );
   }
 
