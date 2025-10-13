@@ -17,6 +17,7 @@ class DropdownSearchPopup<T> extends StatefulWidget {
   final List<T> defaultSelectedItems;
   final PopupPropsMultiSelection<T> popupProps;
   final bool isMultiSelectionMode;
+  final ButtonStyle? buttonStyle;
 
   const DropdownSearchPopup({
     super.key,
@@ -27,7 +28,7 @@ class DropdownSearchPopup<T> extends StatefulWidget {
     this.items,
     this.itemAsString,
     this.filterFn,
-    this.compareFn,
+    this.compareFn, this.buttonStyle,
   });
 
   @override
@@ -289,7 +290,7 @@ class DropdownSearchPopupState<T> extends State<DropdownSearchPopup<T>> {
       child: SizedBox(
         height: 30,
         child: ElevatedButton(
-          style: const ButtonStyle(
+          style: widget.buttonStyle??const ButtonStyle(
             backgroundColor: WidgetStatePropertyAll(Color(0xffA0BA9B)),
           ),
           onPressed: onValidate,
