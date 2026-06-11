@@ -23,16 +23,23 @@ class AdaptiveDropdownSearch<T> extends BaseDropdownSearch<T> {
     super.compareFn,
     super.onBeforeChange,
     super.onBeforePopupOpening,
+    super.onFocusChange,
+    super.onBeforeClear,
+    super.onClear,
     //form properties
     super.onSaved,
     super.validator,
     super.decoratorProps,
+    super.textProps,
   }) : super(
+          uiMode: context.getUiToApply(UiMode.adaptive),
           popupProps:
               context.getUiToApply(UiMode.adaptive) == UiToApply.cupertino
                   ? popupProps.cupertinoProps
                   : popupProps.materialProps,
-          uiMode: UiMode.adaptive,
+          groupId: context.getUiToApply(UiMode.adaptive) == UiToApply.cupertino
+              ? popupProps.cupertinoProps.autoCompleteProps.groupId
+              : popupProps.materialProps.autoCompleteProps.groupId,
         );
 
   AdaptiveDropdownSearch.multiSelection({
@@ -55,16 +62,24 @@ class AdaptiveDropdownSearch<T> extends BaseDropdownSearch<T> {
     super.onSelected,
     super.onBeforeChange,
     super.onBeforePopupOpening,
+    super.onFocusChange,
     super.dropdownBuilder,
+    super.onBeforeClear,
+    super.onClear,
     //form properties
     super.onSaved,
     super.validator,
     super.decoratorProps,
+    super.selectedItemsWrapProps,
+    super.textProps,
   }) : super.multiSelection(
+          uiMode: context.getUiToApply(UiMode.adaptive),
           popupProps:
               context.getUiToApply(UiMode.adaptive) == UiToApply.cupertino
                   ? popupProps.cupertinoProps
                   : popupProps.materialProps,
-          uiMode: UiMode.adaptive,
+          groupId: context.getUiToApply(UiMode.adaptive) == UiToApply.cupertino
+              ? popupProps.cupertinoProps.autoCompleteProps.groupId
+              : popupProps.materialProps.autoCompleteProps.groupId,
         );
 }

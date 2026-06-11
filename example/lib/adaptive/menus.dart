@@ -44,9 +44,15 @@ class _AdaptiveMenuExamplesPageState extends State<AdaptiveMenuExamplesPage> {
                     ],
                     popupProps: AdaptiveMultiSelectionPopupProps(
                       materialProps: MultiSelectionPopupProps.menu(
-                          disabledItemFn: (item) => item == 'Tuesday',
-                          constraints: BoxConstraints(minWidth: 250),
-                          fit: FlexFit.loose),
+                        disabledItemFn: (item) => item == 'Tuesday',
+                        constraints: BoxConstraints(minWidth: 250),
+                        fit: FlexFit.loose,
+                      ),
+                      cupertinoProps: CupertinoMultiSelectionPopupProps.menu(
+                        disabledItemFn: (item) => item == 'Tuesday',
+                        constraints: BoxConstraints(minWidth: 250),
+                        fit: FlexFit.loose,
+                      ),
                     ),
                     dropdownBuilder: (ctx, selectedItem) =>
                         Icon(Icons.calendar_month_outlined, size: 54),
@@ -64,17 +70,30 @@ class _AdaptiveMenuExamplesPageState extends State<AdaptiveMenuExamplesPage> {
                     ],
                     compareFn: (item1, item2) => item1.$1 == item2.$1,
                     popupProps: AdaptivePopupProps(
-                        materialProps: PopupProps.menu(
-                      menuProps: MenuProps(align: MenuAlign.bottomCenter),
-                      constraints: BoxConstraints(minWidth: 128),
-                      fit: FlexFit.loose,
-                      itemBuilder: (context, item, isDisabled, isSelected) =>
-                          Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(item.$1,
-                            style: TextStyle(color: item.$2, fontSize: 16)),
+                      materialProps: PopupProps.menu(
+                        menuProps: MenuProps(align: MenuAlign.bottomCenter),
+                        constraints: BoxConstraints(minWidth: 128),
+                        fit: FlexFit.loose,
+                        itemBuilder: (context, item, isDisabled, isSelected) =>
+                            Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(item.$1,
+                              style: TextStyle(color: item.$2, fontSize: 16)),
+                        ),
                       ),
-                    )),
+                      cupertinoProps: CupertinoPopupProps.menu(
+                        menuProps:
+                            CupertinoMenuProps(align: MenuAlign.bottomCenter),
+                        constraints: BoxConstraints(minWidth: 128),
+                        fit: FlexFit.loose,
+                        itemBuilder: (context, item, isDisabled, isSelected) =>
+                            Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(item.$1,
+                              style: TextStyle(color: item.$2, fontSize: 16)),
+                        ),
+                      ),
+                    ),
                     dropdownBuilder: (ctx, selectedItem) =>
                         Icon(Icons.face, color: selectedItem?.$2, size: 54),
                   ),

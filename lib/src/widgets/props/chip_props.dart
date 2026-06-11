@@ -38,6 +38,7 @@ class ChipProps {
   final BoxConstraints? deleteIconBoxConstraints;
   final ChipAnimationStyle? chipAnimationStyle;
   final WidgetStateProperty<Color?>? color;
+  final MouseCursor? mouseCursor;
 
   const ChipProps({
     this.avatar,
@@ -76,6 +77,7 @@ class ChipProps {
     this.avatarBoxConstraints,
     this.deleteIconBoxConstraints,
     this.chipAnimationStyle,
+    this.mouseCursor,
   });
 
   ChipProps copyWith({
@@ -115,6 +117,7 @@ class ChipProps {
     BoxConstraints? deleteIconBoxConstraints,
     ChipAnimationStyle? chipAnimationStyle,
     WidgetStateProperty<Color?>? color,
+    MouseCursor? mouseCursor,
   }) {
     return ChipProps(
       avatar: avatar ?? this.avatar,
@@ -156,6 +159,7 @@ class ChipProps {
           deleteIconBoxConstraints ?? this.deleteIconBoxConstraints,
       chipAnimationStyle: chipAnimationStyle ?? this.chipAnimationStyle,
       color: color ?? this.color,
+      mouseCursor: mouseCursor ?? this.mouseCursor,
     );
   }
 
@@ -202,6 +206,7 @@ class ChipProps {
           other.deleteIconBoxConstraints ?? deleteIconBoxConstraints,
       chipAnimationStyle: other.chipAnimationStyle ?? chipAnimationStyle,
       color: other.color ?? color,
+      mouseCursor: other.mouseCursor ?? mouseCursor,
     );
   }
 }

@@ -11,7 +11,6 @@ import 'package:dropdown_search/src/widgets/custom_icon_button.dart';
 import 'package:dropdown_search/src/widgets/custom_inkwell.dart';
 import 'package:dropdown_search/src/widgets/custom_wrap.dart';
 import 'package:dropdown_search/src/widgets/hover_builder.dart';
-import 'package:dropdown_search/src/widgets/props/text_props.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -37,11 +36,11 @@ typedef EmptyBuilder = Widget Function(
     BuildContext context, String searchEntry);
 typedef LoadingBuilder = Widget Function(
     BuildContext context, String searchEntry);
-typedef BeforeChange<T> = Future<bool?> Function(T? prevItem, T? nextItem);
-typedef BeforePopupOpening<T> = Future<bool?> Function(T? selectedItem);
-typedef BeforePopupOpeningMultiSelection<T> = Future<bool?> Function(
+typedef BeforeChange<T> = FutureOr<bool> Function(T? prevItem, T? nextItem);
+typedef BeforePopupOpening<T> = FutureOr<bool> Function(T? selectedItem);
+typedef BeforePopupOpeningMultiSelection<T> = FutureOr<bool> Function(
     List<T> selectedItem);
-typedef BeforeChangeMultiSelection<T> = Future<bool?> Function(
+typedef BeforeChangeMultiSelection<T> = FutureOr<bool> Function(
     List<T> prevItems, List<T> nextItems);
 
 typedef ValidationMultiSelectionBuilder<T> = Widget Function(
@@ -50,6 +49,11 @@ typedef PositionCallback = RelativeRect Function(
     RenderBox dropdownBox, RenderBox overlay);
 typedef OnItemAdded<T> = void Function(List<T> selectedItems, T addedItem);
 typedef OnItemRemoved<T> = void Function(List<T> selectedItems, T removedItem);
+typedef OnClearMultiSelection<T> = void Function();
+typedef OnClear<T> = void Function();
+typedef OnBeforeClearMultiSelection<T> = FutureOr<bool> Function(
+    List<T> selectedItems);
+typedef OnBeforeClear<T> = FutureOr<bool> Function(T? selectedItem);
 typedef ContainerBuilder<T> = Widget Function(
     BuildContext context, Widget child);
 
@@ -156,11 +160,23 @@ abstract class BaseDropdownSearch<T> extends StatefulWidget {
   ///if the callBack return FALSE, the opening of the popup will be cancelled
   final BeforePopupOpeningMultiSelection<T>? onBeforePopupOpeningMultiSelection;
 
+  ///a callBack will be called before clearing all item by clicking on clear button
+  ///if the callBack return FALSE, the CLEAR will be cancelled
+  final OnBeforeClear<T>? onBeforeClear;
+  final OnBeforeClearMultiSelection<T>? onBeforeClearMultiSelection;
+
+  ///a callBack will be called after clearing all item by clicking on clear button
+  final OnClear<T>? onClear;
+  final OnClearMultiSelection<T>? onClearMultiSelection;
+
   final Mode mode;
 
-  final UiMode uiMode;
+  final UiToApply uiMode;
 
   final Object? groupId;
+
+  /// Called when the focus state changes.
+  final void Function(bool)? onFocusChange;
 
   BaseDropdownSearch({
     super.key,
@@ -187,6 +203,9 @@ abstract class BaseDropdownSearch<T> extends StatefulWidget {
     this.chipProps,
     DropDownDecoratorProps? decoratorProps,
     this.textProps = const TextProps(),
+    this.onFocusChange,
+    this.onBeforeClear,
+    this.onClear,
   })  : assert(
           T == String || T == int || T == double || compareFn != null,
           '`compareFn` is required',
@@ -220,6 +239,8 @@ abstract class BaseDropdownSearch<T> extends StatefulWidget {
         onSelectedMultiSelection = null,
         onBeforePopupOpeningMultiSelection = null,
         selectedItemsScrollProps = null,
+        onClearMultiSelection = null,
+        onBeforeClearMultiSelection = null,
         selectedItemsWrapProps = null;
 
   BaseDropdownSearch.multiSelection({
@@ -242,11 +263,14 @@ abstract class BaseDropdownSearch<T> extends StatefulWidget {
     ValueChanged<List<T>>? onSelected,
     BeforeChangeMultiSelection<T>? onBeforeChange,
     BeforePopupOpeningMultiSelection<T>? onBeforePopupOpening,
+    this.onFocusChange,
     DropdownSearchBuilderMultiSelection<T>? dropdownBuilder,
     //form properties
     FormFieldSetter<List<T>>? onSaved,
     FormFieldValidator<List<T>>? validator,
     DropDownDecoratorProps? decoratorProps,
+    OnBeforeClearMultiSelection<T>? onBeforeClear,
+    OnClearMultiSelection<T>? onClear,
     this.chipProps,
     this.textProps = const TextProps(),
   })  : assert(
@@ -278,12 +302,16 @@ abstract class BaseDropdownSearch<T> extends StatefulWidget {
         onBeforeChangeMultiSelection = onBeforeChange,
         validatorMultiSelection = validator,
         dropdownBuilderMultiSelection = dropdownBuilder,
+        onBeforeClearMultiSelection = onBeforeClear,
+        onClearMultiSelection = onClear,
         isMultiSelectionMode = true,
         dropdownBuilder = null,
         validator = null,
         onBeforeChange = null,
         onSaved = null,
         onSelected = null,
+        onClear = null,
+        onBeforeClear = null,
         onBeforePopupOpening = null;
 
   static List<T> _itemToList<T>(T? item) {
@@ -299,7 +327,6 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
   final ValueNotifier<List<T>> _selectedItemsNotifier = ValueNotifier([]);
   final ValueNotifier<bool> _isFocused = ValueNotifier(false);
   final _popupStateKey = GlobalKey<DropdownSearchPopupState<T>>();
-  var _uiToApply = UiToApply.material;
   CustomOverlayEntry? _customOverlyEntry;
   final autoCompleteFocusNode = FocusNode();
 
@@ -307,12 +334,15 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
   void initState() {
     super.initState();
     _selectedItemsNotifier.value = List.from(widget.selectedItems);
-    _uiToApply = context.getUiToApply(widget.uiMode);
 
     if (widget.popupProps.mode == PopupMode.autocomplete) {
       HardwareKeyboard.instance
           .addHandler(_handleAutoCompleteBackPressKeyPress);
     }
+
+    _isFocused.addListener(() {
+      widget.onFocusChange?.call(_isFocused.value);
+    });
   }
 
   bool _handleAutoCompleteBackPressKeyPress(KeyEvent event) {
@@ -333,10 +363,6 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
   void didUpdateWidget(BaseDropdownSearch<T> oldWidget) {
     if (!listEquals(oldWidget.selectedItems, widget.selectedItems)) {
       _selectedItemsNotifier.value = List.from(widget.selectedItems);
-    }
-
-    if (widget.uiMode != oldWidget.uiMode) {
-      _uiToApply = context.getUiToApply(widget.uiMode);
     }
 
     ///this code check if we need to refresh the popup widget to update
@@ -384,6 +410,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
   void dispose() {
     closeDropDownSearch();
     autoCompleteFocusNode.dispose();
+    _isFocused.dispose();
     HardwareKeyboard.instance
         .removeHandler(_handleAutoCompleteBackPressKeyPress);
     super.dispose();
@@ -474,14 +501,14 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
             return CustomChip(
               label: Text(_itemAsString(e)),
               props: ChipProps(
-                onDeleted: () => removeItem(e),
-                shape: _uiToApply == UiToApply.cupertino
+                onDeleted: widget.enabled ? () => removeItem(e) : null,
+                shape: widget.uiMode == UiToApply.cupertino
                     ? RoundedRectangleBorder(
                         borderRadius: BorderRadius.all(Radius.circular(18)))
                     : null,
                 padding: const EdgeInsets.all(0),
                 selected: true,
-                deleteIcon: _uiToApply == UiToApply.cupertino
+                deleteIcon: widget.uiMode == UiToApply.cupertino
                     ? Icon(CupertinoIcons.multiply_circle_fill)
                     : null,
               ).merge(widget.chipProps),
@@ -642,7 +669,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
     );
 
     final decoration = widget.decoratorProps.decoration ??
-        (_uiToApply == UiToApply.cupertino
+        (widget.uiMode == UiToApply.cupertino
             ? cupertinoDecoration
             : materialDefaultDecoration);
     return decoration
@@ -676,7 +703,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
         props: props,
         onPressed: () => clear(),
         icon: props.icon ??
-            Icon(_uiToApply == UiToApply.cupertino
+            Icon(widget.uiMode == UiToApply.cupertino
                 ? CupertinoIcons.clear_circled_solid
                 : Icons.clear),
       );
@@ -689,7 +716,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
 
       //icon required
       final dropDownClosedIcon = dropDownButton.icon ??
-          Icon(_uiToApply == UiToApply.cupertino
+          Icon(widget.uiMode == UiToApply.cupertino
               ? CupertinoIcons.chevron_down
               : Icons.arrow_drop_down);
 
@@ -742,7 +769,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
 
     autoCompleteFocusNode.requestFocus();
 
-    if (_uiToApply == UiToApply.cupertino) {
+    if (widget.uiMode == UiToApply.cupertino) {
       _customOverlyEntry = CupertinoCustomOverlyEntry(
           child: _popupWidgetInstance(),
           constraints: widget.popupProps.constraints,
@@ -767,7 +794,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
 
   ///open dialog
   Future _openSelectDialog() {
-    if (_uiToApply == UiToApply.cupertino) {
+    if (widget.uiMode == UiToApply.cupertino) {
       return openCupertinoDialog(
         context,
         _popupWidgetInstance(),
@@ -801,7 +828,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
   }
 
   Future _openBottomSheet() {
-    if (_uiToApply == UiToApply.cupertino) {
+    if (widget.uiMode == UiToApply.cupertino) {
       return openCupertinoBottomSheet(
         context,
         _popupWidgetInstance(),
@@ -823,7 +850,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
 
   ///open BottomSheet (Dialog mode)
   Future _openModalBottomSheet() {
-    if (_uiToApply == UiToApply.cupertino) {
+    if (widget.uiMode == UiToApply.cupertino) {
       return openCupertinoModalBottomSheet(
         context,
         _popupWidgetInstance(),
@@ -853,7 +880,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
 
   ///openMenu
   Future _openMenu() {
-    if (_uiToApply == UiToApply.cupertino) {
+    if (widget.uiMode == UiToApply.cupertino) {
       final menuProps = isMultiSelectionMode
           ? (widget.popupProps as CupertinoMultiSelectionPopupProps<T>)
               .menuProps
@@ -881,7 +908,7 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
   Widget _popupWidgetInstance() {
     return DropdownSearchPopup<T>(
       key: _popupStateKey,
-      uiMode: _uiToApply,
+      uiMode: widget.uiMode,
       props: widget.popupProps,
       itemAsString: widget.itemAsString,
       filterFn: widget.filterFn,
@@ -919,20 +946,14 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
     }
 
     if (widget.onBeforeChange != null) {
-      widget.onBeforeChange!(getSelectedItem,
-              selectedItems.isEmpty ? null : selectedItems.first)
-          .then((value) {
-        if (value == true) {
-          changeItem();
-        }
-      });
+      Future.value(
+        widget.onBeforeChange!(getSelectedItem,
+            selectedItems.isEmpty ? null : selectedItems.first),
+      ).then((allowed) => allowed ? changeItem() : null);
     } else if (widget.onBeforeChangeMultiSelection != null) {
-      widget.onBeforeChangeMultiSelection!(getSelectedItems, selectedItems)
-          .then((value) {
-        if (value == true) {
-          changeItem();
-        }
-      });
+      Future.value(
+        widget.onBeforeChangeMultiSelection!(getSelectedItems, selectedItems),
+      ).then((allowed) => allowed ? changeItem() : null);
     } else {
       changeItem();
     }
@@ -971,6 +992,14 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
     _handleFocus(false);
   }
 
+  void _handleOnCleared() {
+    if (widget.onClear != null) {
+      widget.onClear!();
+    } else if (widget.onClearMultiSelection != null) {
+      widget.onClearMultiSelection!();
+    }
+  }
+
   ///Change selected Value; this function is public USED to change the selected
   ///value PROGRAMMATICALLY, Otherwise you can use [_handleOnChangeSelectedItems]
   ///for multiSelection mode you can use [changeSelectedItems]
@@ -990,7 +1019,24 @@ class DropdownSearchState<T> extends State<BaseDropdownSearch<T>> {
 
   ///Change selected Value; this function is public USED to clear selected
   ///value PROGRAMMATICALLY, Otherwise you can use [_handleOnChangeSelectedItems]
-  void clear() => _handleOnChangeSelectedItems([]);
+  void clear() {
+    void applyClear() {
+      _handleOnChangeSelectedItems([]);
+      _handleOnCleared();
+    }
+
+    if (widget.onBeforeClear != null) {
+      Future.value(
+        widget.onBeforeClear!(getSelectedItem),
+      ).then((allowed) => allowed ? applyClear() : null);
+    } else if (widget.onBeforeClearMultiSelection != null) {
+      Future.value(
+        widget.onBeforeClearMultiSelection!(getSelectedItems),
+      ).then((allowed) => allowed ? applyClear() : null);
+    } else {
+      applyClear();
+    }
+  }
 
   ///get selected value programmatically USED for SINGLE_SELECTION mode
   T? get getSelectedItem =>

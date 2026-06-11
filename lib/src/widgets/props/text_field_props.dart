@@ -72,6 +72,8 @@ class TextFieldProps extends BaseTextFieldProps {
   final bool onTapAlwaysCalled;
   final Object groupId;
   final TapRegionUpCallback? onTapUpOutside;
+  final bool? selectAllOnFocus;
+  final List<Locale>? hintLocales;
 
   const TextFieldProps({
     this.groupId = EditableText,
@@ -142,6 +144,8 @@ class TextFieldProps extends BaseTextFieldProps {
     this.spellCheckConfiguration,
     this.undoController,
     this.onTapUpOutside,
+    this.hintLocales,
+    this.selectAllOnFocus,
   });
 
   static Widget _defaultContextMenuBuilder(
